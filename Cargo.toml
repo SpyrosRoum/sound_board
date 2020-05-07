@@ -8,4 +8,7 @@ edition = "2018"
 
 [dependencies]
 sqlx = { version = "0.3", default-features = false, features = ["runtime-async-std", "sqlite"]}
-async-std = "1.5.0"
+tokio = { version = "0.2", features = ["full"] }
+
+iui = { git = "https://github.com/rust-native-ui/libui-rs.git" }
+serenity = { git = "https://github.com/Lakelezz/serenity/", branch = "await", default-features = false, features = ["client", "rustls_backend", "model"] }
