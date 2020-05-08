@@ -4,7 +4,6 @@ use serenity::{
     prelude::*,
 };
 
-use tokio::prelude::*;
 use tokio::runtime::Runtime;
 
 struct Handler;
