@@ -2,6 +2,8 @@ mod bot;
 mod db;
 mod gui;
 
+use gui::Gui;
+
 use tokio::runtime::Runtime;
 
 fn main() -> Result<(), sqlx::Error> {
@@ -17,8 +19,9 @@ fn main() -> Result<(), sqlx::Error> {
         })
     }
 
-    let ui = gui::create_gui();
+    let mut gui = Gui::new();
+    gui.build_gui();
 
-    ui.main();
+    gui.ui.main();
     Ok(())
 }
