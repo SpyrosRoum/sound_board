@@ -4,7 +4,8 @@ use super::db;
 use sqlx::SqlitePool;
 
 use iced::{
-    button, text_input, Align, Button, Column, Element, Row, Application, Settings, Text, TextInput, Command,
+    button, text_input, Align, Application, Button, Column, Command, Element, Row, Settings, Text,
+    TextInput,
 };
 
 pub fn main() {
@@ -26,7 +27,7 @@ impl Default for Counter {
             bot_running: false,
             start_bot_btn: Default::default(),
             token: Default::default(),
-            token_value: "".to_string()
+            token_value: "".to_string(),
         }
     }
 }
@@ -45,7 +46,10 @@ impl Application for Counter {
     type Flags = ();
 
     fn new(_: ()) -> (Self, Command<Self::Message>) {
-        (Self::default(), Command::perform(create_db(), Message::CreateDb))
+        (
+            Self::default(),
+            Command::perform(create_db(), Message::CreateDb),
+        )
     }
 
     fn title(&self) -> String {
@@ -56,14 +60,18 @@ impl Application for Counter {
         match message {
             Message::CreateDb(pool) => {
                 self.pool = Some(pool);
-            },
+            }
             Message::StartBotPressed => {
                 if self.bot_running {
                     // TODO say it's running
                     println!("It's running ")
                 } else {
                     self.bot_running = true;
-                    return Command::perform(start_bot(self.token_value.clone()), |_| Message::BotFailed);
+                    return Command::perform(start_bot(self.token_value.clone()), |_| {
+                        // If this runs, `start_bot` finished.
+                        // This never actually runs even if bot panics
+                        Message::BotFailed
+                    });
                 }
             }
             Message::TokenChanged(new) => {
