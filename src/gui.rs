@@ -1,43 +1,36 @@
 use super::bot;
 use super::db;
 
-use sqlx::SqlitePool;
-
 use iced::{
     button, text_input, Align, Application, Button, Column, Command, Element, Row, Settings, Text,
-    TextInput,
+    TextInput, Space, Length,
 };
+use sqlx::SqlitePool;
 
 pub fn main() {
     Counter::run(Settings::default())
 }
 
+#[derive(Default)]
 struct Counter {
-    pool: Option<SqlitePool>,
+    message: String,
     bot_running: bool,
     start_bot_btn: button::State,
+    save_btn: button::State,
     token: text_input::State,
     token_value: String,
 }
 
-impl Default for Counter {
-    fn default() -> Self {
-        Self {
-            pool: None,
-            bot_running: false,
-            start_bot_btn: Default::default(),
-            token: Default::default(),
-            token_value: "".to_string(),
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 enum Message {
-    CreateDb(SqlitePool),
+    // Good,
+    CreatedPool(SqlitePool),
+    CreatedTables(SqlitePool),
+    GotToken(String),
     StartBotPressed,
     TokenChanged(String),
     BotFailed,
+    Save,
 }
 
 impl Application for Counter {
@@ -48,7 +41,10 @@ impl Application for Counter {
     fn new(_: ()) -> (Self, Command<Self::Message>) {
         (
             Self::default(),
-            Command::perform(create_db(), Message::CreateDb),
+            Command::perform(
+                db::create_pool("sqlite://DATA/app.db"),
+                Message::CreatedPool,
+            ),
         )
     }
 
@@ -58,13 +54,21 @@ impl Application for Counter {
 
     fn update(&mut self, message: Message) -> Command<Self::Message> {
         match message {
-            Message::CreateDb(pool) => {
-                self.pool = Some(pool);
+            // Message::Good => (),
+            Message::CreatedPool(pool) => {
+                return Command::perform(db::create_tables(pool.clone()), Message::CreatedTables);
+            }
+            Message::CreatedTables(pool) => {
+                return Command::perform(db::get_token(pool.clone()), Message::GotToken);
+            }
+            Message::GotToken(token) => {
+                if !token.starts_with("Bot") {
+                    self.token_value = token;
+                }
             }
             Message::StartBotPressed => {
                 if self.bot_running {
-                    // TODO say it's running
-                    println!("It's running ")
+                    self.message = "Bot is already running".to_string();
                 } else {
                     self.bot_running = true;
                     return Command::perform(start_bot(self.token_value.clone()), |_| {
@@ -76,6 +80,9 @@ impl Application for Counter {
             }
             Message::TokenChanged(new) => {
                 self.token_value = new;
+            }
+            Message::Save => {
+                self.message = "Saved".to_string();
             }
             // If this get's sent it means that the bot is not running anymore.
             // Probably because of panic/wrong token
@@ -89,9 +96,12 @@ impl Application for Counter {
     }
 
     fn view(&mut self) -> Element<Message> {
+        let messages_lbl = Text::new(self.message.clone()).size(35);
+
         let bot_btn = Button::new(&mut self.start_bot_btn, Text::new("Start Bot"))
             .on_press(Message::StartBotPressed)
             .padding(20);
+
         let token_input = TextInput::new(
             &mut self.token,
             "Bot Token",
@@ -100,6 +110,11 @@ impl Application for Counter {
         )
         .password()
         .padding(20);
+
+        let save_btn = Button::new(&mut self.save_btn, Text::new("Save"))
+            .on_press(Message::Save)
+            .padding(20);
+
         Column::new()
             .padding(20)
             .align_items(Align::Center)
@@ -110,17 +125,11 @@ impl Application for Counter {
                     .push(bot_btn)
                     .push(token_input),
             )
+            .push(save_btn)
+            .push(Space::with_height(Length::Fill))
+            .push(messages_lbl)
             .into()
     }
-}
-
-// async fn get_token() -> String {
-// }
-
-async fn create_db() -> SqlitePool {
-    let pool = db::create_pool().await;
-    db::create_tables(&pool).await;
-    pool
 }
 
 async fn start_bot(token: String) {
