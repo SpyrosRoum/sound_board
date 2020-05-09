@@ -4,8 +4,6 @@ use serenity::{
     prelude::*,
 };
 
-use tokio::runtime::Runtime;
-
 struct Handler;
 
 #[async_trait]
@@ -24,12 +22,7 @@ impl EventHandler for Handler {
     }
 }
 
-pub fn start(token: String) {
-    let mut rt = Runtime::new().expect("Failed to create runtime");
-    rt.block_on(actual_start(token))
-}
-
-async fn actual_start(token: String) {
+pub async fn start(token: String) {
     let mut client = Client::new(&token)
         .event_handler(Handler)
         .await
