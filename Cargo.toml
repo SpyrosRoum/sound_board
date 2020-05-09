@@ -12,3 +12,4 @@ tokio = { version = "0.2", features = ["full"] }
 
 iced = { version = "0.1", features = ["tokio"] }
 serenity = { git = "https://github.com/Lakelezz/serenity/", branch = "await", default-features = false, features = ["client", "rustls_backend", "model"] }
+nfd = "0.0.4"

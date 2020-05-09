@@ -1,11 +1,15 @@
+use std::sync::mpsc;
+use std::thread;
+
 use super::bot;
 use super::db;
 
 use iced::{
-    button, text_input, Align, Application, Button, Column, Command, Element, Row, Settings, Text,
-    TextInput, Space, Length,
+    button, text_input, Align, Application, Button, Column, Command, Element, Length, Row,
+    Settings, Space, Text, TextInput,
 };
-use sqlx::SqlitePool;
+use nfd;
+
 
 pub fn main() {
     Counter::run(Settings::default())
@@ -18,19 +22,21 @@ struct Counter {
     start_bot_btn: button::State,
     save_btn: button::State,
     token: text_input::State,
+    choose_file_btn: button::State,
     token_value: String,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
     // Good,
-    CreatedPool(SqlitePool),
-    CreatedTables(SqlitePool),
+    Saved(bool),
+    CreatedTables,
     GotToken(String),
     StartBotPressed,
     TokenChanged(String),
     BotFailed,
     Save,
+    ChooseFile,
 }
 
 impl Application for Counter {
@@ -41,10 +47,7 @@ impl Application for Counter {
     fn new(_: ()) -> (Self, Command<Self::Message>) {
         (
             Self::default(),
-            Command::perform(
-                db::create_pool("sqlite://DATA/app.db"),
-                Message::CreatedPool,
-            ),
+            Command::perform(db::create_tables(), |_| Message::CreatedTables),
         )
     }
 
@@ -55,11 +58,8 @@ impl Application for Counter {
     fn update(&mut self, message: Message) -> Command<Self::Message> {
         match message {
             // Message::Good => (),
-            Message::CreatedPool(pool) => {
-                return Command::perform(db::create_tables(pool.clone()), Message::CreatedTables);
-            }
-            Message::CreatedTables(pool) => {
-                return Command::perform(db::get_token(pool.clone()), Message::GotToken);
+            Message::CreatedTables => {
+                return Command::perform(db::get_token(), Message::GotToken);
             }
             Message::GotToken(token) => {
                 if !token.starts_with("Bot") {
@@ -73,7 +73,7 @@ impl Application for Counter {
                     self.bot_running = true;
                     return Command::perform(start_bot(self.token_value.clone()), |_| {
                         // If this runs, `start_bot` finished.
-                        // This never actually runs even if bot panics
+                        // FIXME This never actually runs even if bot panics
                         Message::BotFailed
                     });
                 }
@@ -82,13 +82,31 @@ impl Application for Counter {
                 self.token_value = new;
             }
             Message::Save => {
-                self.message = "Saved".to_string();
+                return Command::perform(db::save(self.token_value.clone()), Message::Saved);
             }
-            // If this get's sent it means that the bot is not running anymore.
-            // Probably because of panic/wrong token
+            Message::Saved(success) => {
+                self.message = if success {
+                    "Saved".to_string()
+                } else {
+                    "Error Saving".to_string()
+                };
+            }
+            Message::ChooseFile => {
+                // TODO things..
+                let (sx, rx) = mpsc::channel();
+                thread::spawn(move || {
+                    let res = nfd::open_file_dialog(None, None).unwrap();
+                    sx.send(res).unwrap();
+                });
+                let res = rx.recv().unwrap();
+                match res {
+                    nfd::Response::Okay(path) => println!("{}", path),
+                    nfd::Response::Cancel => println!("Cancelled"),
+                    _ => (),
+                }
+            }
             Message::BotFailed => {
-                // TODO say wrong token
-                println!("Probably wrong token");
+                self.message = "Failed to start the bot. Make sure you have the correct token".to_string();
                 self.bot_running = false;
             }
         }
@@ -96,6 +114,10 @@ impl Application for Counter {
     }
 
     fn view(&mut self) -> Element<Message> {
+        let choose_file_btn = Button::new(&mut self.choose_file_btn, Text::new("Test"))
+            .on_press(Message::ChooseFile)
+            .padding(20);
+
         let messages_lbl = Text::new(self.message.clone()).size(35);
 
         let bot_btn = Button::new(&mut self.start_bot_btn, Text::new("Start Bot"))
@@ -118,6 +140,8 @@ impl Application for Counter {
         Column::new()
             .padding(20)
             .align_items(Align::Center)
+            .push(choose_file_btn)
+            .push(Space::with_height(Length::Units(50)))
             .push(
                 Row::new()
                     .padding(20)
