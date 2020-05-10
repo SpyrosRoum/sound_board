@@ -1,15 +1,12 @@
-use std::sync::mpsc;
-use std::thread;
-
 use super::bot;
 use super::db;
 
 use iced::{
     button, text_input, Align, Application, Button, Column, Command, Element, Length, Row,
-    Settings, Space, Text, TextInput,
+    Settings, Space, Text, TextInput
 };
 use nfd;
-
+use tokio::task;
 
 pub fn main() {
     Counter::run(Settings::default())
@@ -37,6 +34,7 @@ enum Message {
     BotFailed,
     Save,
     ChooseFile,
+    ChoseFile(String),
 }
 
 impl Application for Counter {
@@ -92,17 +90,14 @@ impl Application for Counter {
                 };
             }
             Message::ChooseFile => {
-                // TODO things..
-                let (sx, rx) = mpsc::channel();
-                thread::spawn(move || {
-                    let res = nfd::open_file_dialog(None, None).unwrap();
-                    sx.send(res).unwrap();
-                });
-                let res = rx.recv().unwrap();
-                match res {
-                    nfd::Response::Okay(path) => println!("{}", path),
-                    nfd::Response::Cancel => println!("Cancelled"),
-                    _ => (),
+                return Command::perform(choose_file(), Message::ChoseFile)
+            }
+            Message::ChoseFile(path) => {
+                println!("{}", path);
+                if path != "-1" {
+                    println!("{}", path);
+                } else {
+                    println!("Cancelled")
                 }
             }
             Message::BotFailed => {
@@ -158,4 +153,17 @@ impl Application for Counter {
 
 async fn start_bot(token: String) {
     bot::start(token).await;
+}
+
+// TODO maybe impl Debug for nfd::Response and return that?
+async fn choose_file() -> String {
+    (task::spawn_blocking(|| {
+        let res = nfd::open_file_dialog(None, None).expect("Error opening nfd");
+
+        match res {
+            nfd::Response::Okay(path) => return path,
+            nfd::Response::Cancel => return "-1".to_string(),
+            _ => return "-1".to_string(),
+        }
+    }).await).unwrap()
 }
