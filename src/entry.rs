@@ -52,9 +52,9 @@ pub enum EntryMessage {
 impl Entry {
     pub fn new() -> Self {
         Self {
-            word: "Word".to_string(),
-            id: "id".to_string(),
-            path: "Path".to_string(),
+            word: String::new(),
+            id: String::new(),
+            path: String::from("Path"),
             state: EntryState::default(),
         }
     }
@@ -73,12 +73,14 @@ impl Entry {
                 }
             }
             EntryMessage::DoneEditing => {
+                // TODO check that id is all numbers
                 if !self.word.is_empty() && !self.path.is_empty() && !self.id.is_empty() {
                     self.state = EntryState::Idle {
                         edit_btn: button::State::new(),
                     }
                 }
             }
+            // This is taken care of in gui.rs
             EntryMessage::Delete => {}
             EntryMessage::ChooseFile => {} //return Command::perform(choose_file(), Message::ChoseFile),
             // EntryMessage::ChoseFile(path) => {
@@ -129,7 +131,7 @@ impl Entry {
 
                 let id = TextInput::new(
                     id_in,
-                    "Channel id",
+                    "Channel Id",
                     &self.id,
                     EntryMessage::IdChanged,
                 )
