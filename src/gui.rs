@@ -1,5 +1,6 @@
 use super::bot;
 use super::db;
+use super::entry::{Entry, EntryMessage};
 
 use iced::{
     button, scrollable, text_input, Align, Application, Button, Column, Command, Element,
@@ -19,7 +20,7 @@ struct Counter {
     start_bot_btn: button::State,
     save_btn: button::State,
     token: text_input::State,
-    choose_file_btn: button::State,
+    add_entry_btn: button::State,
     token_value: String,
     scroll: scrollable::State,
 
@@ -36,35 +37,8 @@ enum Message {
     TokenChanged(String),
     BotFailed,
     Save,
-    ChooseFile,
-    ChoseFile(String),
     AddEntry,
-}
-
-#[derive(Debug, Clone)]
-struct Entry {
-    word: String,
-    id: String,
-    path: String,
-
-    state: EntryState,
-}
-
-#[derive(Debug, Clone)]
-struct EntryState {
-    word: text_input::State,
-    id: text_input::State,
-    path: button::State,
-}
-
-impl Default for EntryState {
-    fn default() -> Self {
-        EntryState {
-            word: text_input::State::new(),
-            id: text_input::State::new(),
-            path: button::State::new(),
-        }
-    }
+    EntryMessage(usize, EntryMessage),
 }
 
 impl Application for Counter {
@@ -85,6 +59,14 @@ impl Application for Counter {
 
     fn update(&mut self, message: Message) -> Command<Self::Message> {
         match message {
+            Message::EntryMessage(i, EntryMessage::Delete) => {
+                self.entries.remove(i);
+            }
+            Message::EntryMessage(i, msg) => {
+                if let Some(entry) = self.entries.get_mut(i) {
+                    entry.update(msg);
+                }
+            }
             // Message::Good => (),
             Message::CreatedTables => {
                 return Command::perform(db::get_token(), Message::GotToken);
@@ -120,22 +102,8 @@ impl Application for Counter {
                     "Error Saving".to_string()
                 };
             }
-            Message::ChooseFile => return Command::perform(choose_file(), Message::ChoseFile),
-            Message::ChoseFile(path) => {
-                // TODO this is for testing only for now
-                if path != "-1" {
-                    println!("{}", path);
-                } else {
-                    println!("Cancelled")
-                }
-            }
             Message::AddEntry => {
-                let entry = Entry {
-                    word: "Word".to_string(),
-                    id: self.entries.len().to_string(),
-                    path: "path".to_string(),
-                    state: EntryState::default(),
-                };
+                let entry = Entry ::new();
                 self.entries.push(entry);
             }
             Message::BotFailed => {
@@ -148,7 +116,7 @@ impl Application for Counter {
     }
 
     fn view(&mut self) -> Element<Message> {
-        let choose_file_btn = Button::new(&mut self.choose_file_btn, Text::new("Test"))
+        let add_entry = Button::new(&mut self.add_entry_btn, Text::new("Add Entry"))
             .on_press(Message::AddEntry)
             .padding(20);
 
@@ -177,17 +145,16 @@ impl Application for Counter {
             .push(Text::new("Channel Id"))
             .push(Text::new("Sound file"))
             .padding(20);
-        
+
         let entries: Element<_> = if self.entries.len() > 0 {
             self.entries
                 .iter_mut()
-                .fold(Column::new().spacing(20), |col, entry| {
+                .enumerate()
+                .fold(Column::new().spacing(20), |col, (i, entry)| {
                     col.push(
-                        Row::new()
-                            .spacing(20)
-                            .push(Text::new(&entry.word))
-                            .push(Text::new(&entry.id))
-                            .push(Text::new(&entry.path)),
+                        entry
+                            .view()
+                            .map(move |message| Message::EntryMessage(i, message)),
                     )
                 })
                 .into()
@@ -213,7 +180,7 @@ impl Application for Counter {
                     .max_height(200)
                     .padding(20),
             )
-            .push(choose_file_btn)
+            .push(add_entry)
             .push(Space::with_height(Length::Units(50)))
             .push(
                 Row::new()
@@ -234,6 +201,7 @@ async fn start_bot(token: String) {
 }
 
 // I can't return the nfd::Response (doesn't impl Debug) so I use -1 when I want to ignore it
+// Maybe I should return Result/Option?
 async fn choose_file() -> String {
     (task::spawn_blocking(|| {
         let res = nfd::open_file_dialog(None, None).expect("Error opening nfd");
