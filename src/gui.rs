@@ -2,8 +2,8 @@ use super::bot;
 use super::db;
 
 use iced::{
-    button, text_input, Align, Application, Button, Column, Command, Element, Length, Row,
-    Settings, Space, Text, TextInput
+    button, scrollable, text_input, Align, Application, Button, Column, Command, Element,
+    HorizontalAlignment, Length, Row, Scrollable, Settings, Space, Text, TextInput,
 };
 use nfd;
 use tokio::task;
@@ -21,6 +21,9 @@ struct Counter {
     token: text_input::State,
     choose_file_btn: button::State,
     token_value: String,
+    scroll: scrollable::State,
+
+    entries: Vec<Entry>,
 }
 
 #[derive(Debug, Clone)]
@@ -35,6 +38,33 @@ enum Message {
     Save,
     ChooseFile,
     ChoseFile(String),
+    AddEntry,
+}
+
+#[derive(Debug, Clone)]
+struct Entry {
+    word: String,
+    id: String,
+    path: String,
+
+    state: EntryState,
+}
+
+#[derive(Debug, Clone)]
+struct EntryState {
+    word: text_input::State,
+    id: text_input::State,
+    path: button::State,
+}
+
+impl Default for EntryState {
+    fn default() -> Self {
+        EntryState {
+            word: text_input::State::new(),
+            id: text_input::State::new(),
+            path: button::State::new(),
+        }
+    }
 }
 
 impl Application for Counter {
@@ -68,6 +98,7 @@ impl Application for Counter {
                 if self.bot_running {
                     self.message = "Bot is already running".to_string();
                 } else {
+                    self.message = "Starting Bot".to_string();
                     self.bot_running = true;
                     return Command::perform(start_bot(self.token_value.clone()), |_| {
                         // If this runs, `start_bot` finished.
@@ -89,19 +120,27 @@ impl Application for Counter {
                     "Error Saving".to_string()
                 };
             }
-            Message::ChooseFile => {
-                return Command::perform(choose_file(), Message::ChoseFile)
-            }
+            Message::ChooseFile => return Command::perform(choose_file(), Message::ChoseFile),
             Message::ChoseFile(path) => {
-                println!("{}", path);
+                // TODO this is for testing only for now
                 if path != "-1" {
                     println!("{}", path);
                 } else {
                     println!("Cancelled")
                 }
             }
+            Message::AddEntry => {
+                let entry = Entry {
+                    word: "Word".to_string(),
+                    id: self.entries.len().to_string(),
+                    path: "path".to_string(),
+                    state: EntryState::default(),
+                };
+                self.entries.push(entry);
+            }
             Message::BotFailed => {
-                self.message = "Failed to start the bot. Make sure you have the correct token".to_string();
+                self.message =
+                    "Failed to start the bot. Make sure you have the correct token".to_string();
                 self.bot_running = false;
             }
         }
@@ -110,10 +149,10 @@ impl Application for Counter {
 
     fn view(&mut self) -> Element<Message> {
         let choose_file_btn = Button::new(&mut self.choose_file_btn, Text::new("Test"))
-            .on_press(Message::ChooseFile)
+            .on_press(Message::AddEntry)
             .padding(20);
 
-        let messages_lbl = Text::new(self.message.clone()).size(35);
+        let messages_lbl = Text::new(self.message.clone()).size(20);
 
         let bot_btn = Button::new(&mut self.start_bot_btn, Text::new("Start Bot"))
             .on_press(Message::StartBotPressed)
@@ -132,9 +171,48 @@ impl Application for Counter {
             .on_press(Message::Save)
             .padding(20);
 
+        let head = Row::new()
+            .spacing(20)
+            .push(Text::new("Word"))
+            .push(Text::new("Channel Id"))
+            .push(Text::new("Sound file"))
+            .padding(20);
+        
+        let entries: Element<_> = if self.entries.len() > 0 {
+            self.entries
+                .iter_mut()
+                .fold(Column::new().spacing(20), |col, entry| {
+                    col.push(
+                        Row::new()
+                            .spacing(20)
+                            .push(Text::new(&entry.word))
+                            .push(Text::new(&entry.id))
+                            .push(Text::new(&entry.path)),
+                    )
+                })
+                .into()
+        } else {
+            Text::new("You don't have any words")
+                .width(Length::Fill)
+                .size(25)
+                .horizontal_alignment(HorizontalAlignment::Center)
+                .into()
+        };
+
         Column::new()
             .padding(20)
             .align_items(Align::Center)
+            .push(head)
+            .push(
+                Scrollable::new(&mut self.scroll)
+                    .spacing(5)
+                    .align_items(Align::Center)
+                    .push(entries)
+                    .height(Length::Shrink)
+                    .width(Length::Fill)
+                    .max_height(200)
+                    .padding(20),
+            )
             .push(choose_file_btn)
             .push(Space::with_height(Length::Units(50)))
             .push(
@@ -155,15 +233,17 @@ async fn start_bot(token: String) {
     bot::start(token).await;
 }
 
-// TODO maybe impl Debug for nfd::Response and return that?
+// I can't return the nfd::Response (doesn't impl Debug) so I use -1 when I want to ignore it
 async fn choose_file() -> String {
     (task::spawn_blocking(|| {
         let res = nfd::open_file_dialog(None, None).expect("Error opening nfd");
 
         match res {
-            nfd::Response::Okay(path) => return path,
-            nfd::Response::Cancel => return "-1".to_string(),
-            _ => return "-1".to_string(),
+            nfd::Response::Okay(path) => path,
+            nfd::Response::Cancel => "-1".to_string(),
+            _ => "-1".to_string(),
         }
-    }).await).unwrap()
+    })
+    .await)
+        .unwrap()
 }
