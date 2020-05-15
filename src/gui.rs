@@ -27,13 +27,13 @@ struct SoundBoard {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    Saved(bool),
     CreatedTables,
     GotToken(String),
     StartBotPressed,
     TokenChanged(String),
     BotFailed,
     Save,
+    Saved,
     AddEntry,
     EntryMessage(usize, EntryMessage),
 }
@@ -89,14 +89,13 @@ impl Application for SoundBoard {
                 self.token_value = new;
             }
             Message::Save => {
-                return Command::perform(db::save(self.token_value.clone()), Message::Saved);
+                return Command::perform(
+                    db::save(self.token_value.clone(), self.entries.clone()),
+                    |_| Message::Saved,
+                );
             }
-            Message::Saved(success) => {
-                self.message = if success {
-                    "Saved".to_string()
-                } else {
-                    "Error Saving".to_string()
-                };
+            Message::Saved => {
+                self.message = "Saved".to_string();
             }
             Message::AddEntry => {
                 let index = self.entries.len();
@@ -196,4 +195,3 @@ impl Application for SoundBoard {
 async fn start_bot(token: String) {
     bot::start(token).await;
 }
-

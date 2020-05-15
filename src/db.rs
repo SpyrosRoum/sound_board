@@ -1,9 +1,17 @@
+use super::entry::Entry;
+
 use std::fs::File;
 use std::io::Read;
 
-use sqlx::{cursor::Cursor, query, row::Row, Connect, SqliteConnection};
+use sqlx::{cursor::Cursor, query, row::Row, Connect, SqliteConnection, SqlitePool};
 
 static PATH: &str = "sqlite://DATA/app.db";
+
+async fn get_pool() -> SqlitePool {
+    SqlitePool::new(PATH)
+        .await
+        .expect("Failed to create sqlite pool")
+}
 
 async fn get_connection() -> SqliteConnection {
     SqliteConnection::connect(PATH)
@@ -34,14 +42,28 @@ pub async fn get_token() -> String {
     }
 }
 
-pub async fn save(token: String) -> bool {
-    let mut con = get_connection().await;
-    match query("DELETE FROM settings; INSERT INTO settings (bot_token) VALUES (?);")
+pub async fn save(token: String, entries: Vec<Entry>) {
+    let pool = get_pool().await;
+
+    query("DELETE FROM settings; INSERT INTO settings (bot_token) VALUES (?);")
         .bind(token)
-        .execute(&mut con)
+        .execute(&pool)
         .await
-    {
-        Ok(_) => true,
-        _ => false,
+        .expect("Failed to delete and insert token");
+
+    query("DELETE FROM words;")
+        .execute(&pool)
+        .await
+        .expect("Failed to delete old words.");
+
+    for entry in entries.iter() {
+        query("INSERT INTO words (g_id, chn_id, word, file_path) VALUES (?, ?, ?, ?)")
+            .bind(&entry.g_id)
+            .bind(&entry.chn_id)
+            .bind(&entry.word)
+            .bind(&entry.path)
+            .execute(&pool)
+            .await
+            .expect("Failed to insert new entries.");
     }
 }
