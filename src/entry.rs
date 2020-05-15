@@ -80,7 +80,7 @@ impl Entry {
         match message {
             // This is taken care of in gui.rs
             EntryMessage::Delete => {}
-            EntryMessage::WordChanged(new) => self.word = new,
+            EntryMessage::WordChanged(new) => self.word = new.to_lowercase(),
             EntryMessage::GuildIdChanged(new) => self.g_id = new,
             EntryMessage::ChnIdChanged(new) => self.chn_id = new,
             EntryMessage::Edit => {
