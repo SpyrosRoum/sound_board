@@ -7,7 +7,7 @@ use sqlx::{cursor::Cursor, query, row::Row, Connect, SqliteConnection, SqlitePoo
 
 static PATH: &str = "sqlite://DATA/app.db";
 
-async fn get_pool() -> SqlitePool {
+pub async fn get_pool() -> SqlitePool {
     SqlitePool::new(PATH)
         .await
         .expect("Failed to create sqlite pool")
