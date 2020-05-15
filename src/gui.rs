@@ -29,6 +29,7 @@ struct SoundBoard {
 pub enum Message {
     CreatedTables,
     GotToken(String),
+    GotEntries(Vec<Entry>),
     StartBotPressed,
     TokenChanged(String),
     BotFailed,
@@ -71,7 +72,11 @@ impl Application for SoundBoard {
                 if !token.starts_with("Bot") {
                     self.token_value = token;
                 }
+                return Command::perform(db::get_entries(), Message::GotEntries)
             }
+            Message::GotEntries(entries) => {
+                    self.entries = entries;
+                }
             Message::StartBotPressed => {
                 if self.bot_running {
                     self.message = "Bot is already running".to_string();

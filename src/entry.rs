@@ -64,6 +64,17 @@ impl Entry {
             state: EntryState::default(),
         }
     }
+    
+    pub fn new_idle(index: usize) -> Self {
+        Self {
+            index,
+            word: String::new(),
+            g_id: String::new(),
+            chn_id: String::new(),
+            path: String::from("Path"),
+            state: EntryState::Idle { edit_btn: button::State::new() },
+        }
+    }
 
     pub fn update(&mut self, message: EntryMessage) {
         match message {

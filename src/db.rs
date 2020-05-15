@@ -42,6 +42,26 @@ pub async fn get_token() -> String {
     }
 }
 
+pub async fn get_entries() -> Vec<Entry> {
+    let mut con = get_connection().await;
+    let mut entries = vec![];
+
+    let mut cur = query("SELECT * FROM words;").fetch(&mut con);
+    while let Some(e) = cur.next().await.expect("Failed to read entries cursor") {
+        let i = entries.len();
+        let mut entry = Entry::new_idle(i);
+
+        entry.word = e.get("word");
+        entry.g_id = e.get("g_id");
+        entry.chn_id = e.get("chn_id");
+        entry.path = e.get("file_path");
+
+        entries.push(entry);
+    }
+
+    entries
+}
+
 pub async fn save(token: String, entries: Vec<Entry>) {
     let pool = get_pool().await;
 
