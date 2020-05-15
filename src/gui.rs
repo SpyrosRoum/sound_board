@@ -6,15 +6,13 @@ use iced::{
     button, scrollable, text_input, Align, Application, Button, Column, Command, Element,
     HorizontalAlignment, Length, Row, Scrollable, Settings, Space, Text, TextInput,
 };
-use nfd;
-use tokio::task;
 
 pub fn main() {
-    Counter::run(Settings::default())
+    SoundBoard::run(Settings::default());
 }
 
 #[derive(Default)]
-struct Counter {
+struct SoundBoard {
     message: String,
     bot_running: bool,
     start_bot_btn: button::State,
@@ -28,8 +26,7 @@ struct Counter {
 }
 
 #[derive(Debug, Clone)]
-enum Message {
-    // Good,
+pub enum Message {
     Saved(bool),
     CreatedTables,
     GotToken(String),
@@ -41,7 +38,7 @@ enum Message {
     EntryMessage(usize, EntryMessage),
 }
 
-impl Application for Counter {
+impl Application for SoundBoard {
     type Executor = iced::executor::Default;
     type Message = Message;
     type Flags = ();
@@ -67,7 +64,6 @@ impl Application for Counter {
                     entry.update(msg);
                 }
             }
-            // Message::Good => (),
             Message::CreatedTables => {
                 return Command::perform(db::get_token(), Message::GotToken);
             }
@@ -103,7 +99,8 @@ impl Application for Counter {
                 };
             }
             Message::AddEntry => {
-                let entry = Entry ::new();
+                let index = self.entries.len();
+                let entry = Entry::new(index);
                 self.entries.push(entry);
             }
             Message::BotFailed => {
@@ -200,18 +197,3 @@ async fn start_bot(token: String) {
     bot::start(token).await;
 }
 
-// I can't return the nfd::Response (doesn't impl Debug) so I use -1 when I want to ignore it
-// Maybe I should return Result/Option?
-async fn choose_file() -> String {
-    (task::spawn_blocking(|| {
-        let res = nfd::open_file_dialog(None, None).expect("Error opening nfd");
-
-        match res {
-            nfd::Response::Okay(path) => path,
-            nfd::Response::Cancel => "-1".to_string(),
-            _ => "-1".to_string(),
-        }
-    })
-    .await)
-        .unwrap()
-}

@@ -1,10 +1,11 @@
-use iced::{
-    button, text_input, Align, Button, Element,
-    Length, Row, Text, TextInput,
-};
+use iced::{button, text_input, Align, Button, Element, Length, Row, Text, TextInput};
+use nfd;
+
 
 #[derive(Debug, Clone)]
 pub struct Entry {
+    index: usize,
+
     word: String,
     id: String,
     path: String,
@@ -41,17 +42,18 @@ impl Default for EntryState {
 #[derive(Debug, Clone)]
 pub enum EntryMessage {
     ChooseFile,
-    // ChoseFile(String),
     WordChanged(String),
     IdChanged(String),
     Edit,
     DoneEditing,
     Delete,
+    ChoseFile(String)
 }
 
 impl Entry {
-    pub fn new() -> Self {
+    pub fn new(index: usize) -> Self {
         Self {
+            index,
             word: String::new(),
             id: String::new(),
             path: String::from("Path"),
@@ -61,6 +63,8 @@ impl Entry {
 
     pub fn update(&mut self, message: EntryMessage) {
         match message {
+            // This is taken care of in gui.rs
+            EntryMessage::Delete => {}
             EntryMessage::WordChanged(new) => self.word = new,
             EntryMessage::IdChanged(new) => self.id = new,
             EntryMessage::Edit => {
@@ -80,19 +84,19 @@ impl Entry {
                     }
                 }
             }
-            // This is taken care of in gui.rs
-            EntryMessage::Delete => {}
-            EntryMessage::ChooseFile => {} //return Command::perform(choose_file(), Message::ChoseFile),
-            // EntryMessage::ChoseFile(path) => {
-            //     // TODO this is for testing only for now
-            //     if path != "-1" {
-            //         println!("{}", path);
-            //     } else {
-            //         println!("Cancelled")
-            //     }
-            // }
+            EntryMessage::ChooseFile => {
+                let res = nfd::open_file_dialog(None, None).expect("Error opening nfd");
+                match res {
+                    nfd::Response::Okay(path) => self.update(EntryMessage::ChoseFile(path)),
+                    _ => (),
+                };
+            }
+            EntryMessage::ChoseFile(path) => {
+                println!("{}", path);
+            }
         }
     }
+
 
     pub fn view(&mut self) -> Element<EntryMessage> {
         match &mut self.state {
