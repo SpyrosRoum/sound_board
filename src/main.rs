@@ -3,7 +3,6 @@ mod db;
 mod entry;
 mod gui;
 
-// use tokio::prelude::*;
 
 #[tokio::main]
 async fn main() {

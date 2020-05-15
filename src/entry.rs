@@ -64,7 +64,7 @@ impl Entry {
             state: EntryState::default(),
         }
     }
-    
+
     pub fn new_idle(index: usize) -> Self {
         Self {
             index,
@@ -72,7 +72,9 @@ impl Entry {
             g_id: String::new(),
             chn_id: String::new(),
             path: String::from("Path"),
-            state: EntryState::Idle { edit_btn: button::State::new() },
+            state: EntryState::Idle {
+                edit_btn: button::State::new(),
+            },
         }
     }
 

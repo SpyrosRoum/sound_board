@@ -1,6 +1,6 @@
-use std::sync::{Arc, Mutex};
 use std::fs::File;
 use std::io::Read;
+use std::sync::{Arc, Mutex};
 
 use super::entry::Entry;
 
@@ -15,7 +15,9 @@ pub async fn get_pool() -> SqlitePool {
 }
 
 pub async fn create_tables() {
-    let mut con = SqliteConnection::connect(PATH).await.expect("Failed to create connection to db");
+    let mut con = SqliteConnection::connect(PATH)
+        .await
+        .expect("Failed to create connection to db");
 
     let mut file = File::open("DATA/schema.sql").expect("Failed to open schema file.");
     let mut schema = String::new();
@@ -57,7 +59,7 @@ pub async fn get_entries(pool: Arc<Mutex<SqlitePool>>) -> Vec<Entry> {
     entries
 }
 
-pub async fn save(pool: Arc<Mutex<SqlitePool>>,  token: String, entries: Vec<Entry>) {
+pub async fn save(pool: Arc<Mutex<SqlitePool>>, token: String, entries: Vec<Entry>) {
     let pool = pool.lock().unwrap().clone();
 
     query("DELETE FROM settings; INSERT INTO settings (bot_token) VALUES (?);")

@@ -10,7 +10,6 @@ use iced::{
 };
 use sqlx::SqlitePool;
 
-
 pub fn main(pool: SqlitePool) {
     SoundBoard::run(Settings::with_flags(pool));
 }
@@ -41,7 +40,7 @@ impl SoundBoard {
             token_value: String::new(),
             scroll: scrollable::State::new(),
             connection_pool: Arc::new(Mutex::new(pool)),
-            entries: vec![]
+            entries: vec![],
         }
     }
 }
@@ -87,28 +86,37 @@ impl Application for SoundBoard {
                 }
             }
             Message::CreatedTables => {
-                return Command::perform(db::get_token(Arc::clone(&self.connection_pool)), Message::GotToken);
+                return Command::perform(
+                    db::get_token(Arc::clone(&self.connection_pool)),
+                    Message::GotToken,
+                );
             }
             Message::GotToken(token) => {
                 if !token.starts_with("Bot") {
                     self.token_value = token;
                 }
-                return Command::perform(db::get_entries(Arc::clone(&self.connection_pool)), Message::GotEntries)
+                return Command::perform(
+                    db::get_entries(Arc::clone(&self.connection_pool)),
+                    Message::GotEntries,
+                );
             }
             Message::GotEntries(entries) => {
-                    self.entries = entries;
-                }
+                self.entries = entries;
+            }
             Message::StartBotPressed => {
                 if self.bot_running {
                     self.message = "Bot is already running".to_string();
                 } else {
                     self.message = "Starting Bot".to_string();
                     self.bot_running = true;
-                    return Command::perform(start_bot(self.token_value.clone(), Arc::clone(&self.connection_pool)), |_| {
-                        // If this runs, `start_bot` finished.
-                        // FIXME This never actually runs even if bot panics
-                        Message::BotFailed
-                    });
+                    return Command::perform(
+                        start_bot(self.token_value.clone(), Arc::clone(&self.connection_pool)),
+                        |_| {
+                            // If this runs, `start_bot` finished.
+                            // FIXME This never actually runs even if bot panics
+                            Message::BotFailed
+                        },
+                    );
                 }
             }
             Message::TokenChanged(new) => {
@@ -116,7 +124,11 @@ impl Application for SoundBoard {
             }
             Message::Save => {
                 return Command::perform(
-                    db::save(Arc::clone(&self.connection_pool), self.token_value.clone(), self.entries.clone()),
+                    db::save(
+                        Arc::clone(&self.connection_pool),
+                        self.token_value.clone(),
+                        self.entries.clone(),
+                    ),
                     |_| Message::Saved,
                 );
             }

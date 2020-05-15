@@ -2,13 +2,13 @@ use std::fs::File;
 use std::io::BufReader;
 use std::sync::{Arc, Mutex};
 
+use rodio;
 use serenity::{
     async_trait,
     model::{channel::Message, gateway::Ready},
     prelude::*,
 };
 use sqlx::{cursor::Cursor, query, row::Row, SqlitePool};
-use rodio;
 
 struct Handler; // For handling event.
 struct ConnectionPool; // The connection to the database, because having multiple connections is a bad idea.
@@ -44,7 +44,7 @@ impl EventHandler for Handler {
                     let sink = data.get::<DevSink>().unwrap();
                     let path: String = row.get("file_path");
                     play_sound(&sink, &path);
-                },
+                }
                 None => (),
             }
         }
