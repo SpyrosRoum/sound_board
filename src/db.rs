@@ -1,7 +1,8 @@
-use super::entry::Entry;
-
+use std::sync::{Arc, Mutex};
 use std::fs::File;
 use std::io::Read;
+
+use super::entry::Entry;
 
 use sqlx::{cursor::Cursor, query, row::Row, Connect, SqliteConnection, SqlitePool};
 
@@ -13,14 +14,8 @@ pub async fn get_pool() -> SqlitePool {
         .expect("Failed to create sqlite pool")
 }
 
-async fn get_connection() -> SqliteConnection {
-    SqliteConnection::connect(PATH)
-        .await
-        .expect("Failed to get connection")
-}
-
 pub async fn create_tables() {
-    let mut con = get_connection().await;
+    let mut con = SqliteConnection::connect(PATH).await.expect("Failed to create connection to db");
 
     let mut file = File::open("DATA/schema.sql").expect("Failed to open schema file.");
     let mut schema = String::new();
@@ -32,21 +27,21 @@ pub async fn create_tables() {
         .expect("Failed to create tables");
 }
 
-pub async fn get_token() -> String {
-    let mut con = get_connection().await;
+pub async fn get_token(pool: Arc<Mutex<SqlitePool>>) -> String {
+    let pool = pool.lock().unwrap().clone();
 
-    let mut cur = query("SELECT bot_token FROM settings;").fetch(&mut con);
+    let mut cur = query("SELECT bot_token FROM settings;").fetch(&pool);
     match cur.next().await.expect("Failed to query the db for token") {
         Some(row) => row.get("bot_token"),
         None => "Bot Token".to_string(),
     }
 }
 
-pub async fn get_entries() -> Vec<Entry> {
-    let mut con = get_connection().await;
+pub async fn get_entries(pool: Arc<Mutex<SqlitePool>>) -> Vec<Entry> {
+    let pool = pool.lock().unwrap().clone();
     let mut entries = vec![];
 
-    let mut cur = query("SELECT * FROM words;").fetch(&mut con);
+    let mut cur = query("SELECT * FROM words;").fetch(&pool);
     while let Some(e) = cur.next().await.expect("Failed to read entries cursor") {
         let i = entries.len();
         let mut entry = Entry::new_idle(i);
@@ -62,8 +57,8 @@ pub async fn get_entries() -> Vec<Entry> {
     entries
 }
 
-pub async fn save(token: String, entries: Vec<Entry>) {
-    let pool = get_pool().await;
+pub async fn save(pool: Arc<Mutex<SqlitePool>>,  token: String, entries: Vec<Entry>) {
+    let pool = pool.lock().unwrap().clone();
 
     query("DELETE FROM settings; INSERT INTO settings (bot_token) VALUES (?);")
         .bind(token)

@@ -3,6 +3,10 @@ mod db;
 mod entry;
 mod gui;
 
-fn main() {
-    gui::main();
+// use tokio::prelude::*;
+
+#[tokio::main]
+async fn main() {
+    let pool = db::get_pool().await;
+    gui::main(pool);
 }

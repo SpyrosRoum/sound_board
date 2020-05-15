@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use super::bot;
 use super::db;
 use super::entry::{Entry, EntryMessage};
@@ -6,12 +8,13 @@ use iced::{
     button, scrollable, text_input, Align, Application, Button, Column, Command, Element,
     HorizontalAlignment, Length, Row, Scrollable, Settings, Space, Text, TextInput,
 };
+use sqlx::SqlitePool;
 
-pub fn main() {
-    SoundBoard::run(Settings::default());
+
+pub fn main(pool: SqlitePool) {
+    SoundBoard::run(Settings::with_flags(pool));
 }
 
-#[derive(Default)]
 struct SoundBoard {
     message: String,
     bot_running: bool,
@@ -22,7 +25,25 @@ struct SoundBoard {
     token_value: String,
     scroll: scrollable::State,
 
+    connection_pool: Arc<Mutex<SqlitePool>>,
     entries: Vec<Entry>,
+}
+
+impl SoundBoard {
+    fn with_pool(pool: SqlitePool) -> Self {
+        Self {
+            message: String::new(),
+            bot_running: false,
+            start_bot_btn: button::State::default(),
+            save_btn: button::State::default(),
+            token: text_input::State::new(),
+            add_entry_btn: button::State::default(),
+            token_value: String::new(),
+            scroll: scrollable::State::new(),
+            connection_pool: Arc::new(Mutex::new(pool)),
+            entries: vec![]
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -42,11 +63,11 @@ pub enum Message {
 impl Application for SoundBoard {
     type Executor = iced::executor::Default;
     type Message = Message;
-    type Flags = ();
+    type Flags = SqlitePool;
 
-    fn new(_: ()) -> (Self, Command<Self::Message>) {
+    fn new(pool: SqlitePool) -> (Self, Command<Self::Message>) {
         (
-            Self::default(),
+            Self::with_pool(pool),
             Command::perform(db::create_tables(), |_| Message::CreatedTables),
         )
     }
@@ -66,13 +87,13 @@ impl Application for SoundBoard {
                 }
             }
             Message::CreatedTables => {
-                return Command::perform(db::get_token(), Message::GotToken);
+                return Command::perform(db::get_token(Arc::clone(&self.connection_pool)), Message::GotToken);
             }
             Message::GotToken(token) => {
                 if !token.starts_with("Bot") {
                     self.token_value = token;
                 }
-                return Command::perform(db::get_entries(), Message::GotEntries)
+                return Command::perform(db::get_entries(Arc::clone(&self.connection_pool)), Message::GotEntries)
             }
             Message::GotEntries(entries) => {
                     self.entries = entries;
@@ -83,7 +104,7 @@ impl Application for SoundBoard {
                 } else {
                     self.message = "Starting Bot".to_string();
                     self.bot_running = true;
-                    return Command::perform(start_bot(self.token_value.clone()), |_| {
+                    return Command::perform(start_bot(self.token_value.clone(), Arc::clone(&self.connection_pool)), |_| {
                         // If this runs, `start_bot` finished.
                         // FIXME This never actually runs even if bot panics
                         Message::BotFailed
@@ -95,7 +116,7 @@ impl Application for SoundBoard {
             }
             Message::Save => {
                 return Command::perform(
-                    db::save(self.token_value.clone(), self.entries.clone()),
+                    db::save(Arc::clone(&self.connection_pool), self.token_value.clone(), self.entries.clone()),
                     |_| Message::Saved,
                 );
             }
@@ -197,6 +218,6 @@ impl Application for SoundBoard {
     }
 }
 
-async fn start_bot(token: String) {
-    bot::start(token).await;
+async fn start_bot(token: String, pool: Arc<Mutex<SqlitePool>>) {
+    bot::start(token, pool).await;
 }

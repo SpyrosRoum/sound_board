@@ -1,7 +1,6 @@
 use std::fs::File;
 use std::io::BufReader;
-
-use super::db::get_pool;
+use std::sync::{Arc, Mutex};
 
 use serenity::{
     async_trait,
@@ -29,7 +28,7 @@ impl TypeMapKey for DevSink {
 
 #[async_trait]
 impl EventHandler for Handler {
-    async fn message(&self, mut ctx: Context, msg: Message) {
+    async fn message(&self, ctx: Context, msg: Message) {
         if let Some(g_id) = msg.guild_id {
             let data = ctx.data.read().await;
             let pool = data.get::<ConnectionPool>().unwrap();
@@ -63,7 +62,7 @@ fn play_sound(sink: &rodio::Sink, path: &str) {
     sink.append(source);
 }
 
-pub async fn start(token: String) {
+pub async fn start(token: String, pool: Arc<Mutex<SqlitePool>>) {
     let mut client = Client::new(&token)
         .event_handler(Handler)
         .await
@@ -71,11 +70,10 @@ pub async fn start(token: String) {
 
     let device = rodio::default_output_device().unwrap();
     {
-        let pool = get_pool().await;
         let sink = rodio::Sink::new(&device);
 
         let mut data = client.data.write().await;
-        data.insert::<ConnectionPool>(pool.clone());
+        data.insert::<ConnectionPool>(pool.lock().expect("Failed to get lock for pool").clone());
         data.insert::<DevSink>(sink);
     }
 
