@@ -1,7 +1,6 @@
-use std::fs::File;
-use std::io::Read;
 use std::sync::{Arc, Mutex};
 
+use super::schema::SCHEMA;
 use super::entry::Entry;
 
 use sqlx::{cursor::Cursor, query, row::Row, Connect, SqliteConnection, SqlitePool};
@@ -19,11 +18,7 @@ pub async fn create_tables() {
         .await
         .expect("Failed to create connection to db");
 
-    let mut file = File::open("DATA/schema.sql").expect("Failed to open schema file.");
-    let mut schema = String::new();
-    file.read_to_string(&mut schema).unwrap();
-
-    query(&schema)
+    query(&SCHEMA)
         .execute(&mut con)
         .await
         .expect("Failed to create tables");

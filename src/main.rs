@@ -2,6 +2,7 @@ mod bot;
 mod db;
 mod entry;
 mod gui;
+mod schema;
 
 #[tokio::main]
 async fn main() {
