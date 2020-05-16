@@ -191,6 +191,7 @@ impl Application for SoundBoard {
                             .map(move |message| Message::EntryMessage(i, message)),
                     )
                 })
+                .align_items(Align::Center)
                 .into()
         } else {
             Text::new("You don't have any words")
@@ -207,25 +208,26 @@ impl Application for SoundBoard {
             .push(
                 Scrollable::new(&mut self.scroll)
                     .spacing(5)
-                    .align_items(Align::Center)
                     .push(entries)
                     .height(Length::Shrink)
                     .width(Length::Fill)
                     .max_height(450)
-                    .padding(20),
+                    .padding(20)
+                    .align_items(Align::Center),
             )
             .push(add_entry)
             .push(Space::with_height(Length::Units(50)))
             .push(
                 Row::new()
                     .padding(20)
-                    .align_items(Align::Center)
                     .push(bot_btn)
-                    .push(token_input),
+                    .push(token_input)
+                    .align_items(Align::Center),
             )
             .push(save_btn)
             .push(Space::with_height(Length::Fill))
             .push(messages_lbl)
+            .align_items(Align::Center)
             .into()
     }
 }

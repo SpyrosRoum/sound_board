@@ -125,11 +125,11 @@ impl Entry {
 
                 Row::new()
                     .spacing(20)
-                    .align_items(Align::Center)
                     .push(word_lbl)
                     .push(chn_id_lbl)
                     .push(path_lbl)
                     .push(edit_btn)
+                    .align_items(Align::Center)
                     .into()
             }
             EntryState::Editing {
@@ -171,6 +171,7 @@ impl Entry {
                     .push(path)
                     .push(done)
                     .push(delete)
+                    .align_items(Align::Center)
                     .into()
             }
         }
