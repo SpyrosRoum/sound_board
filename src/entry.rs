@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use iced::{button, text_input, Align, Button, Element, Length, Row, Text, TextInput};
 use nfd;
 
@@ -115,7 +117,8 @@ impl Entry {
             EntryState::Idle { edit_btn } => {
                 let word_lbl = Text::new(&self.word);
                 let chn_id_lbl = Text::new(&self.chn_id);
-                let path_lbl = Text::new(&self.path);
+                let file_name = Path::new(&self.path).file_name().unwrap();
+                let path_lbl = Text::new(file_name.to_string_lossy());
                 let edit_btn = Button::new(edit_btn, Text::new("edit"))
                     .on_press(EntryMessage::Edit)
                     .padding(10);
@@ -149,7 +152,8 @@ impl Entry {
                 .padding(20)
                 .width(Length::Fill);
 
-                let path = Button::new(path_btn, Text::new(&self.path))
+                let file_name = Path::new(&self.path).file_name().unwrap();
+                let path = Button::new(path_btn, Text::new(file_name.to_string_lossy()))
                     .on_press(EntryMessage::ChooseFile)
                     .padding(10);
 
