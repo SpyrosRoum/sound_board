@@ -29,24 +29,21 @@ impl TypeMapKey for DevSink {
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
-        if let Some(g_id) = msg.guild_id {
-            let data = ctx.data.read().await;
-            let pool = data.get::<ConnectionPool>().unwrap();
+        let data = ctx.data.read().await;
+        let pool = data.get::<ConnectionPool>().unwrap();
 
-            let mut cur = query("SELECT * FROM words WHERE g_id = ? AND chn_id = ? AND word = ?")
-                .bind(&g_id.as_u64().to_string())
-                .bind(&msg.channel_id.as_u64().to_string())
-                .bind(&msg.content.to_lowercase())
-                .fetch(pool);
+        let mut cur = query("SELECT * FROM words WHERE chn_id = ? AND word = ?")
+            .bind(&msg.channel_id.as_u64().to_string())
+            .bind(&msg.content.to_lowercase())
+            .fetch(pool);
 
-            match cur.next().await.expect("Failed to query the db for token") {
-                Some(row) => {
-                    let sink = data.get::<DevSink>().unwrap();
-                    let path: String = row.get("file_path");
-                    play_sound(&sink, &path);
-                }
-                None => (),
+        match cur.next().await.expect("Failed to query the db for token") {
+            Some(row) => {
+                let sink = data.get::<DevSink>().unwrap();
+                let path: String = row.get("file_path");
+                play_sound(&sink, &path);
             }
+            None => (),
         }
     }
 

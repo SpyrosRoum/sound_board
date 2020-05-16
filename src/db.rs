@@ -49,7 +49,6 @@ pub async fn get_entries(pool: Arc<Mutex<SqlitePool>>) -> Vec<Entry> {
         let mut entry = Entry::new_idle(i);
 
         entry.word = e.get("word");
-        entry.g_id = e.get("g_id");
         entry.chn_id = e.get("chn_id");
         entry.path = e.get("file_path");
 
@@ -74,13 +73,12 @@ pub async fn save(pool: Arc<Mutex<SqlitePool>>, token: String, entries: Vec<Entr
         .expect("Failed to delete old words.");
 
     for entry in entries.iter() {
-        query("INSERT INTO words (g_id, chn_id, word, file_path) VALUES (?, ?, ?, ?)")
-            .bind(&entry.g_id)
+        query("INSERT INTO words (chn_id, word, file_path) VALUES (?, ?, ?)")
             .bind(&entry.chn_id)
             .bind(&entry.word)
             .bind(&entry.path)
             .execute(&pool)
             .await
-            .expect("Failed to insert new entries.");
+            .expect("Failed to insert new entries");
     }
 }

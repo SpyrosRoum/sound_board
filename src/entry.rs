@@ -6,7 +6,6 @@ pub struct Entry {
     index: usize,
 
     pub word: String,
-    pub g_id: String,
     pub chn_id: String,
     pub path: String,
 
@@ -20,7 +19,6 @@ enum EntryState {
     },
     Editing {
         word_in: text_input::State,
-        g_id_in: text_input::State,
         chn_id_in: text_input::State,
         path_btn: button::State,
         done_btn: button::State,
@@ -33,7 +31,6 @@ impl Default for EntryState {
         Self::Editing {
             word_in: text_input::State::new(),
             chn_id_in: text_input::State::new(),
-            g_id_in: text_input::State::new(),
             path_btn: button::State::new(),
             done_btn: button::State::new(),
             delete_btn: button::State::new(),
@@ -45,7 +42,6 @@ impl Default for EntryState {
 pub enum EntryMessage {
     ChooseFile,
     WordChanged(String),
-    GuildIdChanged(String),
     ChnIdChanged(String),
     Edit,
     DoneEditing,
@@ -58,7 +54,6 @@ impl Entry {
         Self {
             index,
             word: String::new(),
-            g_id: String::new(),
             chn_id: String::new(),
             path: String::from("Path"),
             state: EntryState::default(),
@@ -69,7 +64,6 @@ impl Entry {
         Self {
             index,
             word: String::new(),
-            g_id: String::new(),
             chn_id: String::new(),
             path: String::from("Path"),
             state: EntryState::Idle {
@@ -83,13 +77,11 @@ impl Entry {
             // This is taken care of in gui.rs
             EntryMessage::Delete => {}
             EntryMessage::WordChanged(new) => self.word = new.to_lowercase(),
-            EntryMessage::GuildIdChanged(new) => self.g_id = new,
             EntryMessage::ChnIdChanged(new) => self.chn_id = new,
             EntryMessage::Edit => {
                 self.state = EntryState::Editing {
                     word_in: text_input::State::new(),
                     chn_id_in: text_input::State::new(),
-                    g_id_in: text_input::State::new(),
                     path_btn: button::State::new(),
                     done_btn: button::State::new(),
                     delete_btn: button::State::new(),
@@ -97,10 +89,7 @@ impl Entry {
             }
             EntryMessage::DoneEditing => {
                 // TODO check that id is all numbers
-                if !self.word.is_empty()
-                    && !self.path.is_empty()
-                    && (!self.g_id.is_empty() || !self.chn_id.is_empty())
-                {
+                if !self.word.is_empty() && !self.path.is_empty() && !self.chn_id.is_empty() {
                     self.state = EntryState::Idle {
                         edit_btn: button::State::new(),
                     }
@@ -124,7 +113,6 @@ impl Entry {
         match &mut self.state {
             EntryState::Idle { edit_btn } => {
                 let word_lbl = Text::new(&self.word);
-                let g_id_lbl = Text::new(&self.g_id);
                 let chn_id_lbl = Text::new(&self.chn_id);
                 let path_lbl = Text::new(&self.path);
                 let edit_btn = Button::new(edit_btn, Text::new("edit"))
@@ -135,7 +123,6 @@ impl Entry {
                     .spacing(20)
                     .align_items(Align::Center)
                     .push(word_lbl)
-                    .push(g_id_lbl)
                     .push(chn_id_lbl)
                     .push(path_lbl)
                     .push(edit_btn)
@@ -144,7 +131,6 @@ impl Entry {
             EntryState::Editing {
                 word_in,
                 chn_id_in,
-                g_id_in,
                 path_btn,
                 done_btn,
                 delete_btn,
@@ -158,15 +144,6 @@ impl Entry {
                     "Channel Id",
                     &self.chn_id,
                     EntryMessage::ChnIdChanged,
-                )
-                .padding(20)
-                .width(Length::Fill);
-
-                let g_id = TextInput::new(
-                    g_id_in,
-                    "Guild Id",
-                    &self.g_id,
-                    EntryMessage::GuildIdChanged,
                 )
                 .padding(20)
                 .width(Length::Fill);
@@ -185,7 +162,6 @@ impl Entry {
                 Row::new()
                     .spacing(20)
                     .push(word)
-                    .push(g_id)
                     .push(chn_id)
                     .push(path)
                     .push(done)
