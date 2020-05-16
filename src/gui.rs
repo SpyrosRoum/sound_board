@@ -1,12 +1,13 @@
 use std::sync::{Arc, Mutex};
 
+use super::style::Theme;
 use super::bot;
 use super::db;
 use super::entry::{Entry, EntryMessage};
 
 use iced::{
     button, scrollable, text_input, Align, Application, Button, Column, Command, Element,
-    HorizontalAlignment, Length, Row, Scrollable, Settings, Space, Text, TextInput,
+    HorizontalAlignment, Length, Row, Scrollable, Settings, Space, Text, TextInput, Container,
 };
 use sqlx::SqlitePool;
 
@@ -15,6 +16,7 @@ pub fn main(pool: SqlitePool) {
 }
 
 struct SoundBoard {
+    style: Theme,
     message: String,
     bot_running: bool,
     start_bot_btn: button::State,
@@ -31,6 +33,7 @@ struct SoundBoard {
 impl SoundBoard {
     fn with_pool(pool: SqlitePool) -> Self {
         Self {
+            style: Theme::Dark,
             message: String::new(),
             bot_running: false,
             start_bot_btn: button::State::default(),
@@ -152,13 +155,15 @@ impl Application for SoundBoard {
     fn view(&mut self) -> Element<Message> {
         let add_entry = Button::new(&mut self.add_entry_btn, Text::new("Add Entry"))
             .on_press(Message::AddEntry)
-            .padding(20);
+            .padding(20)
+            .style(self.style);
 
         let messages_lbl = Text::new(self.message.clone()).size(20);
 
         let bot_btn = Button::new(&mut self.start_bot_btn, Text::new("Start Bot"))
             .on_press(Message::StartBotPressed)
-            .padding(20);
+            .padding(20)
+            .style(self.style);
 
         let token_input = TextInput::new(
             &mut self.token,
@@ -166,12 +171,14 @@ impl Application for SoundBoard {
             &self.token_value,
             Message::TokenChanged,
         )
-        .password()
-        .padding(20);
+            .password()
+            .padding(20)
+            .style(self.style);
 
         let save_btn = Button::new(&mut self.save_btn, Text::new("Save"))
             .on_press(Message::Save)
-            .padding(20);
+            .padding(20)
+            .style(self.style);
 
         let head = Row::new()
             .spacing(20)
@@ -201,6 +208,7 @@ impl Application for SoundBoard {
                 .into()
         };
 
+        Container::new(
         Column::new()
             .padding(20)
             .align_items(Align::Center)
@@ -228,7 +236,7 @@ impl Application for SoundBoard {
             .push(Space::with_height(Length::Fill))
             .push(messages_lbl)
             .align_items(Align::Center)
-            .into()
+        ).style(self.style).into()
     }
 }
 

@@ -3,6 +3,7 @@ mod db;
 mod entry;
 mod gui;
 mod schema;
+mod style;
 
 #[tokio::main]
 async fn main() {

@@ -1,10 +1,13 @@
 use std::path::Path;
 
+use super::style::Theme;
+
 use iced::{button, text_input, Align, Button, Element, Length, Row, Text, TextInput};
 use nfd;
 
 #[derive(Debug, Clone)]
 pub struct Entry {
+    style: Theme,
     index: usize,
 
     pub word: String,
@@ -54,6 +57,7 @@ pub enum EntryMessage {
 impl Entry {
     pub fn new(index: usize) -> Self {
         Self {
+            style: Theme::Dark,
             index,
             word: String::new(),
             chn_id: String::new(),
@@ -64,6 +68,7 @@ impl Entry {
 
     pub fn new_idle(index: usize) -> Self {
         Self {
+            style: Theme::Dark,
             index,
             word: String::new(),
             chn_id: String::new(),
@@ -121,7 +126,8 @@ impl Entry {
                 let path_lbl = Text::new(file_name.to_string_lossy());
                 let edit_btn = Button::new(edit_btn, Text::new("edit"))
                     .on_press(EntryMessage::Edit)
-                    .padding(10);
+                    .padding(10)
+                    .style(self.style);
 
                 Row::new()
                     .spacing(20)
@@ -141,7 +147,8 @@ impl Entry {
             } => {
                 let word = TextInput::new(word_in, "Word", &self.word, EntryMessage::WordChanged)
                     .padding(20)
-                    .width(Length::Fill);
+                    .width(Length::Fill)
+                    .style(self.style);
 
                 let chn_id = TextInput::new(
                     chn_id_in,
@@ -150,19 +157,23 @@ impl Entry {
                     EntryMessage::ChnIdChanged,
                 )
                 .padding(20)
-                .width(Length::Fill);
+                .width(Length::Fill)
+                    .style(self.style);
 
                 let file_name = Path::new(&self.path).file_name().unwrap();
                 let path = Button::new(path_btn, Text::new(file_name.to_string_lossy()))
                     .on_press(EntryMessage::ChooseFile)
-                    .padding(10);
+                    .padding(10)
+                    .style(self.style);
 
                 let done = Button::new(done_btn, Text::new("Done"))
                     .on_press(EntryMessage::DoneEditing)
-                    .padding(10);
+                    .padding(10)
+                    .style(self.style);
                 let delete = Button::new(delete_btn, Text::new("Delete"))
                     .on_press(EntryMessage::Delete)
-                    .padding(10);
+                    .padding(10)
+                    .style(self.style);
 
                 Row::new()
                     .spacing(20)
