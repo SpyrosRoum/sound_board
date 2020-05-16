@@ -211,7 +211,7 @@ impl Application for SoundBoard {
                     .push(entries)
                     .height(Length::Shrink)
                     .width(Length::Fill)
-                    .max_height(200)
+                    .max_height(450)
                     .padding(20),
             )
             .push(add_entry)
