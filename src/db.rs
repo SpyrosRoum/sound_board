@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
-use super::schema::SCHEMA;
 use super::entry::Entry;
+use super::schema::SCHEMA;
 
 use sqlx::{cursor::Cursor, query, row::Row, Connect, SqliteConnection, SqlitePool};
 

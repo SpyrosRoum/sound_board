@@ -158,7 +158,7 @@ impl Entry {
                 )
                 .padding(20)
                 .width(Length::Fill)
-                    .style(self.style);
+                .style(self.style);
 
                 let file_name = Path::new(&self.path).file_name().unwrap();
                 let path = Button::new(path_btn, Text::new(file_name.to_string_lossy()))

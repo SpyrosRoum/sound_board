@@ -1,13 +1,13 @@
 use std::sync::{Arc, Mutex};
 
-use super::style::Theme;
 use super::bot;
 use super::db;
 use super::entry::{Entry, EntryMessage};
+use super::style::Theme;
 
 use iced::{
-    button, scrollable, text_input, Align, Application, Button, Column, Command, Element,
-    HorizontalAlignment, Length, Row, Scrollable, Settings, Space, Text, TextInput, Container,
+    button, scrollable, text_input, Align, Application, Button, Column, Command, Container,
+    Element, HorizontalAlignment, Length, Row, Scrollable, Settings, Space, Text, TextInput,
 };
 use sqlx::SqlitePool;
 
@@ -171,9 +171,9 @@ impl Application for SoundBoard {
             &self.token_value,
             Message::TokenChanged,
         )
-            .password()
-            .padding(20)
-            .style(self.style);
+        .password()
+        .padding(20)
+        .style(self.style);
 
         let save_btn = Button::new(&mut self.save_btn, Text::new("Save"))
             .on_press(Message::Save)
@@ -209,34 +209,36 @@ impl Application for SoundBoard {
         };
 
         Container::new(
-        Column::new()
-            .padding(20)
-            .align_items(Align::Center)
-            .push(head)
-            .push(
-                Scrollable::new(&mut self.scroll)
-                    .spacing(5)
-                    .push(entries)
-                    .height(Length::Shrink)
-                    .width(Length::Fill)
-                    .max_height(450)
-                    .padding(20)
-                    .align_items(Align::Center),
-            )
-            .push(add_entry)
-            .push(Space::with_height(Length::Units(50)))
-            .push(
-                Row::new()
-                    .padding(20)
-                    .push(bot_btn)
-                    .push(token_input)
-                    .align_items(Align::Center),
-            )
-            .push(save_btn)
-            .push(Space::with_height(Length::Fill))
-            .push(messages_lbl)
-            .align_items(Align::Center)
-        ).style(self.style).into()
+            Column::new()
+                .padding(20)
+                .align_items(Align::Center)
+                .push(head)
+                .push(
+                    Scrollable::new(&mut self.scroll)
+                        .spacing(5)
+                        .push(entries)
+                        .height(Length::Shrink)
+                        .width(Length::Fill)
+                        .max_height(450)
+                        .padding(20)
+                        .align_items(Align::Center),
+                )
+                .push(add_entry)
+                .push(Space::with_height(Length::Units(50)))
+                .push(
+                    Row::new()
+                        .padding(20)
+                        .push(bot_btn)
+                        .push(token_input)
+                        .align_items(Align::Center),
+                )
+                .push(save_btn)
+                .push(Space::with_height(Length::Fill))
+                .push(messages_lbl)
+                .align_items(Align::Center),
+        )
+        .style(self.style)
+        .into()
     }
 }
 
