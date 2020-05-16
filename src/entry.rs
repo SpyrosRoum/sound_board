@@ -88,10 +88,11 @@ impl Entry {
                 }
             }
             EntryMessage::DoneEditing => {
-                // TODO check that id is all numbers
                 if !self.word.is_empty() && !self.path.is_empty() && !self.chn_id.is_empty() {
-                    self.state = EntryState::Idle {
-                        edit_btn: button::State::new(),
+                    if self.chn_id.chars().all(char::is_numeric) {
+                        self.state = EntryState::Idle {
+                            edit_btn: button::State::new(),
+                        }
                     }
                 }
             }
