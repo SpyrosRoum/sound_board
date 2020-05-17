@@ -14,6 +14,11 @@ use serenity::{
 struct Handler; // For handling event.
 struct DevSink; // for rodio sink.
 struct KeyWords; // The keywords to look for.
+struct MsgLbl; // For messages to the user.
+
+impl TypeMapKey for MsgLbl {
+    type Value = Arc<Mutex<String>>;
+}
 
 impl TypeMapKey for KeyWords {
     type Value = Arc<Mutex<Vec<Word>>>;
@@ -35,12 +40,20 @@ impl EventHandler for Handler {
 
         for word in &*words {
             if msg.content.to_lowercase().contains(&word.word) {
+                let mut lbl = data.get::<MsgLbl>().unwrap().lock().unwrap();
+
+                *lbl = format!("Found \"{}\".", word.word);
+
                 play_sound(&sink, &word.path);
             }
         }
     }
 
-    async fn ready(&self, _: Context, ready: Ready) {
+    async fn ready(&self, ctx: Context, ready: Ready) {
+        let data = ctx.data.read().await;
+        let mut lbl = data.get::<MsgLbl>().unwrap().lock().unwrap();
+
+        *lbl = format!("Connected to discord as {}", ready.user.name);
         println!("{} is connected!", ready.user.name);
     }
 }
@@ -52,7 +65,7 @@ fn play_sound(sink: &rodio::Sink, path: &str) {
     sink.append(source);
 }
 
-pub async fn start(token: String, words: Arc<Mutex<Vec<Word>>>) {
+pub async fn start(token: String, words: Arc<Mutex<Vec<Word>>>, msg: Arc<Mutex<String>>) {
     let mut client = Client::new(&token)
         .event_handler(Handler)
         .await
@@ -64,9 +77,13 @@ pub async fn start(token: String, words: Arc<Mutex<Vec<Word>>>) {
         let mut data = client.data.write().await;
         data.insert::<DevSink>(sink);
         data.insert::<KeyWords>(words);
+        data.insert::<MsgLbl>(msg)
     }
 
     if let Err(why) = client.start().await {
+        let data = client.data.read().await;
+        let mut lbl = data.get::<MsgLbl>().unwrap().lock().unwrap();
+        *lbl = "Error starting the bot.".to_string();
         println!("Client error: {:?}", why);
     };
 }

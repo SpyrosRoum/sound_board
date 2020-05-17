@@ -18,7 +18,7 @@ pub fn main(pool: SqlitePool, words: Vec<Word>) {
 
 struct SoundBoard {
     style: Theme,
-    message: String,
+    message: Arc<Mutex<String>>,
     bot_running: bool,
     start_bot_btn: button::State,
     save_btn: button::State,
@@ -36,7 +36,7 @@ impl SoundBoard {
     fn new(pool: SqlitePool, words: Vec<Word>) -> Self {
         Self {
             style: Theme::Dark,
-            message: String::new(),
+            message: Arc::new(Mutex::new(String::new())),
             bot_running: false,
             start_bot_btn: button::State::default(),
             save_btn: button::State::default(),
@@ -53,7 +53,6 @@ impl SoundBoard {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    CreatedTables,
     GotToken(String),
     GotEntries(Vec<Entry>),
     StartBotPressed,
@@ -74,7 +73,7 @@ impl Application for SoundBoard {
     fn new((pool, words): (SqlitePool, Vec<Word>)) -> (Self, Command<Self::Message>) {
         (
             Self::new(pool, words),
-            Command::perform(db::create_tables(), |_| Message::CreatedTables),
+            Command::perform(db::get_token(), Message::GotToken),
         )
     }
 
@@ -92,12 +91,6 @@ impl Application for SoundBoard {
                     entry.update(msg);
                 }
             }
-            Message::CreatedTables => {
-                return Command::perform(
-                    db::get_token(Arc::clone(&self.connection_pool)),
-                    Message::GotToken,
-                );
-            }
             Message::GotToken(token) => {
                 if !token.starts_with("Bot") {
                     self.token_value = token;
@@ -112,12 +105,18 @@ impl Application for SoundBoard {
             }
             Message::StartBotPressed => {
                 if self.bot_running {
-                    self.message = "Bot is already running".to_string();
+                    let mut lbl = self.message.lock().unwrap();
+                    *lbl = "Bot is already running".to_string();
                 } else {
-                    self.message = "Starting Bot".to_string();
+                    let mut lbl = self.message.lock().unwrap();
+                    *lbl = "Starting Bot".to_string();
                     self.bot_running = true;
                     return Command::perform(
-                        start_bot(self.token_value.clone(), Arc::clone(&self.words)),
+                        start_bot(
+                            self.token_value.clone(),
+                            Arc::clone(&self.words),
+                            Arc::clone(&self.message),
+                        ),
                         |_| Message::BotFailed,
                     );
                 }
@@ -136,7 +135,8 @@ impl Application for SoundBoard {
                 );
             }
             Message::Saved => {
-                self.message = "Saved".to_string();
+                let mut lbl = self.message.lock().unwrap();
+                *lbl = "Saved".to_string();
                 return Command::perform(
                     db::get_new_words(Arc::clone(&self.connection_pool)),
                     Message::NewWords,
@@ -147,17 +147,13 @@ impl Application for SoundBoard {
                 *words = new_words;
             }
             Message::AddEntry => {
-                // for word in self.words.lock().unwrap() {
-                //     println!("{:?}", word);
-                // }
-
                 let index = self.entries.len();
                 let entry = Entry::new(index);
                 self.entries.push(entry);
             }
             Message::BotFailed => {
-                self.message =
-                    "Failed to start the bot. Make sure you have the correct token".to_string();
+                let mut lbl = self.message.lock().unwrap();
+                *lbl = "Failed to start the bot. Make sure you have the correct token".to_string();
                 self.bot_running = false;
             }
         }
@@ -170,7 +166,8 @@ impl Application for SoundBoard {
             .padding(20)
             .style(self.style);
 
-        let messages_lbl = Text::new(self.message.clone()).size(20);
+        let lbl = self.message.lock().unwrap();
+        let messages_lbl = Text::new(lbl.clone()).size(20);
 
         let bot_btn = Button::new(&mut self.start_bot_btn, Text::new("Start Bot"))
             .on_press(Message::StartBotPressed)
@@ -254,6 +251,6 @@ impl Application for SoundBoard {
     }
 }
 
-async fn start_bot(token: String, words: Arc<Mutex<Vec<Word>>>) {
-    bot::start(token, words).await;
+async fn start_bot(token: String, words: Arc<Mutex<Vec<Word>>>, msg: Arc<Mutex<String>>) {
+    bot::start(token, words, msg).await;
 }

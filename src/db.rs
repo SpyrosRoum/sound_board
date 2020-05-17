@@ -14,21 +14,19 @@ pub async fn get_pool() -> SqlitePool {
         .expect("Failed to create sqlite pool")
 }
 
-pub async fn create_tables() {
-    let mut con = SqliteConnection::connect(PATH)
-        .await
-        .expect("Failed to create connection to db");
-
+pub async fn create_tables(pool: &SqlitePool) {
     query(&SCHEMA)
-        .execute(&mut con)
+        .execute(pool)
         .await
         .expect("Failed to create tables");
 }
 
-pub async fn get_token(pool: Arc<Mutex<SqlitePool>>) -> String {
-    let pool = pool.lock().unwrap().clone();
+pub async fn get_token() -> String {
+    let mut con = SqliteConnection::connect(PATH)
+        .await
+        .expect("Failed to create connection to db");
 
-    let mut cur = query("SELECT bot_token FROM settings;").fetch(&pool);
+    let mut cur = query("SELECT bot_token FROM settings;").fetch(&mut con);
     match cur.next().await.expect("Failed to query the db for token") {
         Some(row) => row.get("bot_token"),
         None => "Bot Token".to_string(),
@@ -36,7 +34,6 @@ pub async fn get_token(pool: Arc<Mutex<SqlitePool>>) -> String {
 }
 
 pub async fn get_words(pool: &SqlitePool) -> Vec<Word> {
-    // let pool = pool.lock().unwrap().clone();
     let mut words = vec![];
 
     let mut cur = query("SELECT * FROM words;").fetch(pool);
