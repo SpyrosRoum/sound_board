@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use super::style::Theme;
+use super::word::Word;
 
 use iced::{button, text_input, Align, Button, Element, Length, Row, Text, TextInput};
 use nfd;
@@ -10,9 +11,7 @@ pub struct Entry {
     style: Theme,
     index: usize,
 
-    pub word: String,
-    pub chn_id: String,
-    pub path: String,
+    pub word: Word,
 
     state: EntryState,
 }
@@ -59,9 +58,7 @@ impl Entry {
         Self {
             style: Theme::Dark,
             index,
-            word: String::new(),
-            chn_id: String::new(),
-            path: String::from("Path"),
+            word: Word::default(),
             state: EntryState::default(),
         }
     }
@@ -70,9 +67,7 @@ impl Entry {
         Self {
             style: Theme::Dark,
             index,
-            word: String::new(),
-            chn_id: String::new(),
-            path: String::from("Path"),
+            word: Word::default(),
             state: EntryState::Idle {
                 edit_btn: button::State::new(),
             },
@@ -83,8 +78,8 @@ impl Entry {
         match message {
             // This is taken care of in gui.rs
             EntryMessage::Delete => {}
-            EntryMessage::WordChanged(new) => self.word = new.to_lowercase(),
-            EntryMessage::ChnIdChanged(new) => self.chn_id = new,
+            EntryMessage::WordChanged(new) => self.word.word = new.to_lowercase(),
+            EntryMessage::ChnIdChanged(new) => self.word.chn_id = new,
             EntryMessage::Edit => {
                 self.state = EntryState::Editing {
                     word_in: text_input::State::new(),
@@ -95,8 +90,8 @@ impl Entry {
                 }
             }
             EntryMessage::DoneEditing => {
-                if !self.word.is_empty() && !self.path.is_empty() && !self.chn_id.is_empty() {
-                    if self.chn_id.chars().all(char::is_numeric) {
+                if !self.word.is_empty() {
+                    if self.word.id_numeric() {
                         self.state = EntryState::Idle {
                             edit_btn: button::State::new(),
                         }
@@ -112,7 +107,7 @@ impl Entry {
             }
             EntryMessage::ChoseFile(path) => {
                 println!("{}", path);
-                self.path = path;
+                self.word.path = path;
             }
         }
     }
@@ -120,9 +115,9 @@ impl Entry {
     pub fn view(&mut self) -> Element<EntryMessage> {
         match &mut self.state {
             EntryState::Idle { edit_btn } => {
-                let word_lbl = Text::new(&self.word);
-                let chn_id_lbl = Text::new(&self.chn_id);
-                let file_name = Path::new(&self.path).file_name().unwrap();
+                let word_lbl = Text::new(&self.word.word);
+                let chn_id_lbl = Text::new(&self.word.chn_id);
+                let file_name = Path::new(&self.word.path).file_name().unwrap();
                 let path_lbl = Text::new(file_name.to_string_lossy());
                 let edit_btn = Button::new(edit_btn, Text::new("edit"))
                     .on_press(EntryMessage::Edit)
@@ -145,22 +140,23 @@ impl Entry {
                 done_btn,
                 delete_btn,
             } => {
-                let word = TextInput::new(word_in, "Word", &self.word, EntryMessage::WordChanged)
-                    .padding(20)
-                    .width(Length::Fill)
-                    .style(self.style);
+                let word =
+                    TextInput::new(word_in, "Word", &self.word.word, EntryMessage::WordChanged)
+                        .padding(20)
+                        .width(Length::Fill)
+                        .style(self.style);
 
                 let chn_id = TextInput::new(
                     chn_id_in,
                     "Channel Id",
-                    &self.chn_id,
+                    &self.word.chn_id,
                     EntryMessage::ChnIdChanged,
                 )
                 .padding(20)
                 .width(Length::Fill)
                 .style(self.style);
 
-                let file_name = Path::new(&self.path).file_name().unwrap();
+                let file_name = Path::new(&self.word.path).file_name().unwrap();
                 let path = Button::new(path_btn, Text::new(file_name.to_string_lossy()))
                     .on_press(EntryMessage::ChooseFile)
                     .padding(10)

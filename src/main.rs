@@ -4,6 +4,7 @@ mod entry;
 mod gui;
 mod schema;
 mod style;
+mod word;
 
 #[tokio::main]
 async fn main() {
