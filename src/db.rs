@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use super::entry::Entry;
 use super::schema::SCHEMA;
+use super::word::Word;
 
 use sqlx::{cursor::Cursor, query, row::Row, Connect, SqliteConnection, SqlitePool};
 
@@ -32,6 +33,42 @@ pub async fn get_token(pool: Arc<Mutex<SqlitePool>>) -> String {
         Some(row) => row.get("bot_token"),
         None => "Bot Token".to_string(),
     }
+}
+
+pub async fn get_words(pool: &SqlitePool) -> Vec<Word> {
+    // let pool = pool.lock().unwrap().clone();
+    let mut words = vec![];
+
+    let mut cur = query("SELECT * FROM words;").fetch(pool);
+    while let Some(row) = cur.next().await.expect("Failed to read words cursor") {
+        let mut word = Word::default();
+
+        word.word = row.get("word");
+        word.chn_id = row.get("chn_id");
+        word.path = row.get("file_path");
+
+        words.push(word)
+    }
+
+    words
+}
+
+pub async fn get_new_words(pool: Arc<Mutex<SqlitePool>>) -> Vec<Word> {
+    let pool = pool.lock().unwrap().clone();
+    let mut words = vec![];
+
+    let mut cur = query("SELECT * FROM words;").fetch(&pool);
+    while let Some(row) = cur.next().await.expect("Failed to read words cursor") {
+        let mut word = Word::default();
+
+        word.word = row.get("word");
+        word.chn_id = row.get("chn_id");
+        word.path = row.get("file_path");
+
+        words.push(word)
+    }
+
+    words
 }
 
 pub async fn get_entries(pool: Arc<Mutex<SqlitePool>>) -> Vec<Entry> {

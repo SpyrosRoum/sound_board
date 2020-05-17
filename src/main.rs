@@ -9,5 +9,7 @@ mod word;
 #[tokio::main]
 async fn main() {
     let pool = db::get_pool().await;
-    gui::main(pool);
+    let words = db::get_words(&pool).await;
+
+    gui::main(pool, words);
 }
