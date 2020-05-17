@@ -90,11 +90,9 @@ impl Entry {
                 }
             }
             EntryMessage::DoneEditing => {
-                if !self.word.is_empty() {
-                    if self.word.id_numeric() {
-                        self.state = EntryState::Idle {
-                            edit_btn: button::State::new(),
-                        }
+                if self.word.is_valid() {
+                    self.state = EntryState::Idle {
+                        edit_btn: button::State::new(),
                     }
                 }
             }

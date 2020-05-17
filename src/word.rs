@@ -16,11 +16,15 @@ impl Default for Word {
 }
 
 impl Word {
-    pub fn is_empty(&self) -> bool {
-        self.word.is_empty() && self.path.is_empty() && self.chn_id.is_empty()
+    fn is_empty(&self) -> bool {
+        self.word.is_empty() || self.path.is_empty() || self.chn_id.is_empty()
     }
 
-    pub fn id_numeric(&self) -> bool {
+    fn id_numeric(&self) -> bool {
         self.chn_id.chars().all(char::is_numeric)
+    }
+
+    pub fn is_valid(&self) -> bool {
+        !self.is_empty() && self.id_numeric()
     }
 }
