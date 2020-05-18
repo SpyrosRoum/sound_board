@@ -3,8 +3,11 @@ use std::path::Path;
 use super::style::Theme;
 use super::word::Word;
 
-use iced::{button, text_input, Align, Button, Element, Length, Row, Text, TextInput};
+use iced::{
+    button, text_input, Align, Button, Command, Element, Length, Row, Text, TextInput,
+};
 use nfd;
+use tokio::task;
 
 #[derive(Debug, Clone)]
 pub struct Entry {
@@ -74,7 +77,7 @@ impl Entry {
         }
     }
 
-    pub fn update(&mut self, message: EntryMessage) {
+    pub fn update(&mut self, message: EntryMessage) -> Command<EntryMessage> {
         match message {
             // This is taken care of in gui.rs
             EntryMessage::Delete => {}
@@ -97,17 +100,15 @@ impl Entry {
                 }
             }
             EntryMessage::ChooseFile => {
-                let res = nfd::open_file_dialog(None, None).expect("Error opening nfd");
-                match res {
-                    nfd::Response::Okay(path) => self.update(EntryMessage::ChoseFile(path)),
-                    _ => (),
-                };
+                return Command::perform(select_file(), EntryMessage::ChoseFile)
             }
             EntryMessage::ChoseFile(path) => {
-                println!("{}", path);
-                self.word.path = path;
+                if path != "-1" {
+                    self.word.path = path;
+                }
             }
         }
+        Command::none()
     }
 
     pub fn view(&mut self) -> Element<EntryMessage> {
@@ -181,4 +182,15 @@ impl Entry {
             }
         }
     }
+}
+
+
+async fn select_file() -> String {
+    task::block_in_place(|| {
+        let res = nfd::open_file_dialog(None, None).expect("Error opening nfd");
+        match res {
+            nfd::Response::Okay(path) => return path,
+            _ => return "-1".to_string(),
+         };
+    })
 }

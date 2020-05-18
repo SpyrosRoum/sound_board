@@ -88,7 +88,7 @@ impl Application for SoundBoard {
             }
             Message::EntryMessage(i, msg) => {
                 if let Some(entry) = self.entries.get_mut(i) {
-                    entry.update(msg);
+                    return entry.update(msg).map(move |msg| Message::EntryMessage(i, msg));
                 }
             }
             Message::GotToken(token) => {
