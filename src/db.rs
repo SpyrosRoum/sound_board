@@ -6,7 +6,7 @@ use super::word::Word;
 
 use sqlx::{cursor::Cursor, query, row::Row, Connect, SqliteConnection, SqlitePool};
 
-static PATH: &str = "sqlite://DATA/app.db";
+static PATH: &str = "sqlite://app.db";
 
 pub async fn get_pool() -> SqlitePool {
     SqlitePool::new(PATH)
