@@ -38,8 +38,24 @@ impl EventHandler for Handler {
         let words_arc = data.get::<KeyWords>().unwrap();
         let words = words_arc.lock().unwrap();
 
+        let mut text = msg.content.to_lowercase();
+        for embed in msg.embeds {
+            if let Some(d) = embed.description {
+                text += format!("{}\n", &d.to_lowercase()).as_ref();
+            }
+            if let Some(f) = embed.footer {
+                text += format!("{}\n", f.text.to_lowercase()).as_ref();
+            }
+            if let Some(t) = embed.title {
+                text += format!("{}\n", &t.to_lowercase()).as_ref();
+            }
+            for field in embed.fields {
+                text += format!("{}\n{}\n", field.name, field.value).as_ref();
+            }
+        }
+        println!("{}", text);
         for word in &*words {
-            if msg.content.to_lowercase().contains(&word.word) {
+            if text.contains(&word.word) {
                 let mut lbl = data.get::<MsgLbl>().unwrap().lock().unwrap();
 
                 *lbl = format!("Found \"{}\".", word.word);
