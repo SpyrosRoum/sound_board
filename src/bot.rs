@@ -55,6 +55,9 @@ impl EventHandler for Handler {
         }
         println!("{}", text);
         for word in &*words {
+            if word.chn_id != msg.channel_id.to_string() {
+                continue;
+            }
             if text.contains(&word.word) {
                 let mut lbl = data.get::<MsgLbl>().unwrap().lock().unwrap();
 
