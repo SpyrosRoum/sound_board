@@ -309,7 +309,7 @@ impl Application for SoundBoard {
                         .push(entries)
                         .height(Length::Shrink)
                         .width(Length::Fill)
-                        .max_height(450)
+                        .max_height(200)
                         .padding(20)
                         .align_items(Align::Center),
                 )
@@ -322,7 +322,7 @@ impl Application for SoundBoard {
                         .push(black_entries)
                         .height(Length::Shrink)
                         .width(Length::Fill)
-                        .max_height(450)
+                        .max_height(200)
                         .padding(20)
                         .align_items(Align::Center),
                 )
