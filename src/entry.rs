@@ -3,9 +3,7 @@ use std::path::Path;
 use super::style::Theme;
 use super::word::Word;
 
-use iced::{
-    button, text_input, Align, Button, Command, Element, Length, Row, Text, TextInput,
-};
+use iced::{button, text_input, Align, Button, Command, Element, Length, Row, Text, TextInput};
 use nfd;
 use tokio::task;
 
@@ -83,15 +81,7 @@ impl Entry {
             EntryMessage::Delete => {}
             EntryMessage::WordChanged(new) => self.word.word = new.to_lowercase(),
             EntryMessage::ChnIdChanged(new) => self.word.chn_id = new,
-            EntryMessage::Edit => {
-                self.state = EntryState::Editing {
-                    word_in: text_input::State::new(),
-                    chn_id_in: text_input::State::new(),
-                    path_btn: button::State::new(),
-                    done_btn: button::State::new(),
-                    delete_btn: button::State::new(),
-                }
-            }
+            EntryMessage::Edit => self.state = EntryState::default(),
             EntryMessage::DoneEditing => {
                 if self.word.is_valid() {
                     self.state = EntryState::Idle {
@@ -184,13 +174,12 @@ impl Entry {
     }
 }
 
-
 async fn select_file() -> String {
     task::block_in_place(|| {
         let res = nfd::open_file_dialog(None, None).expect("Error opening nfd");
-        match res {
-            nfd::Response::Okay(path) => return path,
-            _ => return "-1".to_string(),
-         };
+        return match res {
+            nfd::Response::Okay(path) => path,
+            _ => "-1".into(),
+        };
     })
 }

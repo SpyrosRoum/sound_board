@@ -14,6 +14,7 @@ use serenity::{
 struct Handler; // For handling event.
 struct DevSink; // for rodio sink.
 struct KeyWords; // The keywords to look for.
+struct Blacklist; // The keywords to look for.
 struct MsgLbl; // For messages to the user.
 
 impl TypeMapKey for MsgLbl {
@@ -22,6 +23,10 @@ impl TypeMapKey for MsgLbl {
 
 impl TypeMapKey for KeyWords {
     type Value = Arc<Mutex<Vec<Word>>>;
+}
+
+impl TypeMapKey for Blacklist {
+    type Value = Vec<String>;
 }
 
 impl TypeMapKey for DevSink {
@@ -38,6 +43,8 @@ impl EventHandler for Handler {
         let words_arc = data.get::<KeyWords>().unwrap();
         let words = words_arc.lock().unwrap();
 
+        let blacklist = data.get::<Blacklist>().unwrap();
+
         let mut text = msg.content.to_lowercase();
         for embed in msg.embeds {
             if let Some(d) = embed.description {
@@ -53,7 +60,15 @@ impl EventHandler for Handler {
                 text += format!("{}\n{}\n", field.name, field.value).as_ref();
             }
         }
-        println!("{}", text);
+
+        for word in blacklist.iter() {
+            if text.contains(word) {
+                let mut lbl = data.get::<MsgLbl>().unwrap().lock().unwrap();
+                *lbl = format!("Found Blacklisted \"{}\".", word);
+                return;
+            }
+        }
+
         for word in &*words {
             if word.chn_id != msg.channel_id.to_string() {
                 continue;
@@ -84,8 +99,13 @@ fn play_sound(sink: &rodio::Sink, path: &str) {
     sink.append(source);
 }
 
-pub async fn start(token: String, words: Arc<Mutex<Vec<Word>>>, msg: Arc<Mutex<String>>) {
-    let mut client = Client::new(&token)
+pub async fn start(
+    token: String,
+    words: Arc<Mutex<Vec<Word>>>,
+    blackwords: Vec<String>,
+    msg: Arc<Mutex<String>>,
+) {
+    let mut client = Client::builder(&token)
         .event_handler(Handler)
         .await
         .expect("Error creating discord client");
@@ -96,6 +116,7 @@ pub async fn start(token: String, words: Arc<Mutex<Vec<Word>>>, msg: Arc<Mutex<S
         let mut data = client.data.write().await;
         data.insert::<DevSink>(sink);
         data.insert::<KeyWords>(words);
+        data.insert::<Blacklist>(blackwords);
         data.insert::<MsgLbl>(msg)
     }
 

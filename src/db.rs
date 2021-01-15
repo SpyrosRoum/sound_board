@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 
+use super::black_word::BlackWordEntry;
 use super::entry::Entry;
 use super::schema::SCHEMA;
 use super::word::Word;
@@ -52,20 +53,7 @@ pub async fn get_words(pool: &SqlitePool) -> Vec<Word> {
 
 pub async fn get_new_words(pool: Arc<Mutex<SqlitePool>>) -> Vec<Word> {
     let pool = pool.lock().unwrap().clone();
-    let mut words = vec![];
-
-    let mut cur = query("SELECT * FROM words;").fetch(&pool);
-    while let Some(row) = cur.next().await.expect("Failed to read words cursor") {
-        let mut word = Word::default();
-
-        word.word = row.get("word");
-        word.chn_id = row.get("chn_id");
-        word.path = row.get("file_path");
-
-        words.push(word)
-    }
-
-    words
+    get_words(&pool).await
 }
 
 pub async fn get_entries(pool: Arc<Mutex<SqlitePool>>) -> Vec<Entry> {
@@ -87,7 +75,44 @@ pub async fn get_entries(pool: Arc<Mutex<SqlitePool>>) -> Vec<Entry> {
     entries
 }
 
-pub async fn save(pool: Arc<Mutex<SqlitePool>>, token: String, entries: Vec<Entry>) {
+pub async fn get_blacklist_entries(pool: Arc<Mutex<SqlitePool>>) -> Vec<BlackWordEntry> {
+    let pool = pool.lock().unwrap().clone();
+    let mut words = vec![];
+    let mut i = 0;
+    let mut cur = query("SELECT * FROM blacklist;").fetch(&pool);
+    while let Some(row) = cur.next().await.expect("Failed to read blacklist cursor") {
+        let mut word = BlackWordEntry::new_idle(i);
+
+        word.word = row.get("word");
+
+        words.push(word);
+        i += 1;
+    }
+
+    words
+}
+
+pub async fn get_blacklist(pool: &SqlitePool) -> Vec<String> {
+    let mut words = vec![];
+    let mut cur = query("SELECT * FROM blacklist;").fetch(pool);
+    while let Some(row) = cur.next().await.expect("Failed to read blacklist cursor") {
+        words.push(row.get("word"));
+    }
+
+    words
+}
+
+pub async fn get_new_blacklist(pool: Arc<Mutex<SqlitePool>>) -> Vec<String> {
+    let pool = pool.lock().unwrap().clone();
+    get_blacklist(&pool).await
+}
+
+pub async fn save(
+    pool: Arc<Mutex<SqlitePool>>,
+    token: String,
+    entries: Vec<Entry>,
+    blacklist: Vec<BlackWordEntry>,
+) {
     let pool = pool.lock().unwrap().clone();
 
     query("DELETE FROM settings; INSERT INTO settings (bot_token) VALUES (?);")
@@ -101,11 +126,24 @@ pub async fn save(pool: Arc<Mutex<SqlitePool>>, token: String, entries: Vec<Entr
         .await
         .expect("Failed to delete old words.");
 
+    query("DELETE FROM blacklist;")
+        .execute(&pool)
+        .await
+        .expect("Failed to delete old blacklist");
+
     for entry in entries.iter() {
         query("INSERT INTO words (chn_id, word, file_path) VALUES (?, ?, ?)")
             .bind(&entry.word.chn_id)
             .bind(&entry.word.word)
             .bind(&entry.word.path)
+            .execute(&pool)
+            .await
+            .expect("Failed to insert new entries");
+    }
+
+    for black_word in blacklist.iter() {
+        query("INSERT INTO blacklist (word) VALUES (?)")
+            .bind(&black_word.word)
             .execute(&pool)
             .await
             .expect("Failed to insert new entries");

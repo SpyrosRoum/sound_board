@@ -12,7 +12,7 @@ sqlx = { version = "0.3", default-features = false, features = ["sqlite", "runti
 tokio = { version = "0.2", features = ["full"] }
 
 iced = { version = "0.1", features = ["tokio"] }
-serenity = { git = "https://github.com/Lakelezz/serenity/", branch = "await", default-features = false, features = ["client", "rustls_backend", "model", "gateway"] }
+serenity = { version = "0.9", default-features = false, features = ["client", "rustls_backend", "model", "gateway"] }
 nfd = "0.0.4"
 
 

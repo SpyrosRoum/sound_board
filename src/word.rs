@@ -20,6 +20,7 @@ impl Word {
         self.word.is_empty() || self.path.is_empty() || self.chn_id.is_empty()
     }
 
+    /// Determine if the channel id related to the word is numeric
     fn id_numeric(&self) -> bool {
         self.chn_id.chars().all(char::is_numeric)
     }

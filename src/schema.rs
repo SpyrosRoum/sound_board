@@ -10,4 +10,9 @@ CREATE TABLE IF NOT EXISTS words (
     file_path TEXT NOT NULL,
     CONSTRAINT u_g_chn_word UNIQUE ( chn_id, word )
 );
+
+CREATE TABLE IF NOT EXISTS blacklist (
+    word TEXT,
+    CONSTRAINT u_black_word UNIQUE ( word )
+);
 "#;
